@@ -1,6 +1,7 @@
-from flask import Blueprint, request, render_template, redirect, flash
+from flask import Blueprint, request, render_template, redirect, flash, url_for
 from app.extensions.db import Database
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 auth_bp = Blueprint("auth", __name__)
 db = Database()
@@ -30,7 +31,7 @@ def register():
 
     # 2. CHECK DUPLICATES
     cursor.execute("""
-        SELECT * FROM users
+        SELECT * FROM Users
         WHERE email = %s OR username = %s OR phone = %s
     """, (email, username, phone))
 
@@ -54,4 +55,34 @@ def register():
     conn.close()
 
     flash("Registration successful!", "success")
-    return redirect("/login")
+    return redirect("/auth.login")
+
+
+
+@auth_bp.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        return render_template("login.html")
+
+    username = request.form["username"]
+    password = request.form["password"]
+
+    conn = db.get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT * FROM users 
+        WHERE username = %s
+    """, (username,))
+
+    user = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if user and check_password_hash(user["passwordHash"], password):
+        flash("Login successful!", "success")
+        return render_template("dashboard.html")  # change later to dashboard
+    else:
+        flash("Invalid username or password", "danger")
+        return render_template("login.html")
