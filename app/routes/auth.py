@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, flash, url_for
+from flask import Blueprint, request, render_template, redirect, flash, session
 from app.extensions.db import Database
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -80,11 +80,25 @@ def login():
     cursor.close()
     conn.close()
 
+    # Adding loggin attempt sessions
+    
+    if "login_attempts" not in session:
+        session["login_attempts"] = 0
+
     if user and check_password_hash(user["passwordHash"], password):
+        session["login_attempts"] = 0
         flash("Login successful!", "success")
-        print(("Login successful!", "success"))
-        return render_template("dashboard.html")  
+        return render_template("dashboard.html")
+
+    session["login_attempts"] += 1
+
+    if session["login_attempts"] >= 3:
+        flash("Too many failed login attempts. Please try again later.", "danger")
     else:
-        flash("Invalid username or password", "danger")
-        print("Invalid username or password", "danger")
-        return render_template("login.html")
+        flash(
+            f"Invalid username or password. Attempt {session['login_attempts']}/3",
+            "danger"
+        )
+
+    return render_template("login.html")
+    
