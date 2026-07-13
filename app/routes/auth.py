@@ -82,7 +82,9 @@ def login():
 
     if user and check_password_hash(user["passwordHash"], password):
         flash("Login successful!", "success")
+        print(("Login successful!", "success"))
         return render_template("dashboard.html")  
     else:
         flash("Invalid username or password", "danger")
+        print("Invalid username or password", "danger")
         return render_template("login.html")
